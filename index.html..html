@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DevisPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FBF7F0;--card:#fff;--ink:#17130E;--mut:#6B6257;--or:#E8590C;--onor:#fff;--gold:#B8841F;--line:#E6DCCB;--ok:#1E7A46;--bad:#B3261E;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14110D;--card:#1F1A14;--ink:#F6EFE3;--mut:#A89C8B;--or:#FF7A2E;--onor:#14110D;--gold:#E0B04A;--line:#3A3126;--ok:#5CCB8A;--bad:#FF8A80}}
+:root[data-theme="dark"]{--bg:#14110D;--card:#1F1A14;--ink:#F6EFE3;--mut:#A89C8B;--or:#FF7A2E;--onor:#14110D;--gold:#E0B04A;--line:#3A3126;--ok:#5CCB8A;--bad:#FF8A80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;padding-bottom:96px}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:30px;font-weight:800;margin:4px 0 2px;letter-spacing:-.02em}
+h2{font-size:20px;font-weight:800;margin:22px 0 10px}
+.sub{color:var(--mut);margin:0 0 14px}
+.brand{color:var(--or)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:54px;border-radius:14px;border:2px solid var(--or);background:transparent;color:var(--or);font:inherit;font-weight:800;font-size:17px;text-decoration:none;cursor:pointer;margin-bottom:10px;padding:8px 14px}
+.btn.pri{background:var(--or);color:var(--onor)}
+.btn.sm{min-height:44px;font-size:15px;width:auto;margin:0}
+.btn.bad{border-color:var(--bad);color:var(--bad)}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+label{display:block;font-weight:600;margin:10px 0 4px}
+input{width:100%;min-height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:16px;padding:8px 12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.grid{display:grid;grid-template-columns:1fr 90px 120px;gap:8px;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.chip{border:1.5px solid var(--gold);background:transparent;color:var(--ink);border-radius:999px;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer}
+.tag{font-size:13px;font-weight:800;border-radius:8px;padding:3px 8px;background:var(--line);color:var(--ink)}
+.tag.Payé,.tag.Accepté{background:var(--ok);color:#fff}
+.tag.imp{background:var(--bad);color:#fff}
+.tot{font-size:26px;font-weight:800;color:var(--or)}
+.item{cursor:pointer}
+.nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:2px solid var(--gold);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+.nav button{flex:1;border:0;background:none;color:var(--mut);font:inherit;font-weight:600;font-size:14px;min-height:48px;cursor:pointer}
+.nav button.on{color:var(--or);font-weight:800}
+.sheet{background:#fff;color:#17130E;border-top:8px solid #E8590C;border-radius:6px;padding:18px;margin-bottom:12px;overflow-x:auto}
+.sheet h3{margin:0;font-size:22px;font-weight:800}
+.sheet table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+.sheet td,.sheet th{padding:6px 4px;border-bottom:1px solid #E6DCCB;text-align:left}
+.sheet .r{text-align:right}
+.sheet .gt{font-size:20px;font-weight:800;text-align:right;color:#B8841F}
+#toast{position:fixed;left:16px;right:16px;bottom:90px;background:var(--ink);color:var(--bg);padding:12px 14px;border-radius:12px;font-weight:600;display:none;z-index:5}
+@media print{body>*:not(main){display:none!important}.noprint{display:none!important}body{background:#fff}main{padding:0}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="toast" role="status"></div>
+<nav class="nav" id="nav"></nav>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+var LIB=[["Point lumineux posé",7500],["Prise posée",5000],["Interrupteur posé",4000],["Disjoncteur posé",12000],["Tableau électrique",85000],["Câble (le mètre)",1500],["Main-d’œuvre (jour)",15000]];
+var S=load(),view="home",draft=null,cur=null,filt="Tous";
+function load(){try{var v=JSON.parse(localStorage.getItem("dp")||"null");if(v&&v.docs)return v}catch(e){}return{docs:[],name:"",phone:""}}
+function save(){try{localStorage.setItem("dp",JSON.stringify(S))}catch(e){}}
+function $(s){return document.querySelector(s)}
+function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function fmt(n){return new Intl.NumberFormat("fr-FR").format(Math.round(n||0)).replace(/\s/g," ")+" FCFA"}
+function total(d){return d.lines.reduce(function(s,l){return s+(+l.q||0)*(+l.p||0)},0)}
+var CODES=["DP-K7M2","DP-X9Q4","DP-R5T8","DP-W3N6","DP-H8J1","DP-B4V7","DP-Z2C9","DP-F6L3","DP-M1S5","DP-Y7D2","DP-P9G4","DP-T3K8","DP-N5R6","DP-C8W1","DP-J2H7","DP-V6B9","DP-Q4Z3","DP-L1F5","DP-S9M8","DP-D7Y2","DP-A3K9","DP-E5R2","DP-G7T6","DP-U4W8","DP-X2H5","DP-B9N3","DP-F8Q7","DP-K4Y1","DP-M6C4","DP-P2V9","DP-R8J5","DP-T1Z6","DP-W7L2","DP-H3D8","DP-C5S4","DP-N9F1","DP-Q6B7","DP-Y3G9","DP-Z8M3","DP-V1P5"];
+function isPro(){return S.pro&&S.pro>Date.now()}
+function monthKey(){return new Date().toISOString().slice(0,7)}
+function monthCount(){return S.docs.filter(function(d){return !d.conv&&d.date.slice(0,7)===monthKey()}).length}
+function unpaid(d){return d.type==="facture"&&d.status!=="Payé"}
+function wa(phone,txt){var p=String(phone||"").replace(/\D/g,"");if(p&&p.indexOf("229")!==0)p="229"+p;return"https://wa.me/"+p+"?text="+encodeURIComponent(txt)}
+function toast(m){var t=$("#toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display="none"},3200)}
+function docText(d){var dt=d.date.slice(0,10).split("-").reverse().join("/");return"Bonjour "+d.client+",\nVoici votre "+d.type+" n° "+d.num+" du "+dt+" de "+(S.name||"votre artisan")+" :\n\n"+d.lines.map(function(l,i){return(i+1)+". "+l.d+"\n   Quantité : "+l.q+"\n   Prix unitaire : "+fmt(l.p)+"\n   Montant : "+fmt(l.q*l.p)}).join("\n\n")+"\n\nTOTAL : "+fmt(total(d))+(d.type==="facture"?"\nStatut : "+(d.status==="Payé"?"Payée":"À régler"):"")+"\n\nMerci de votre confiance.\n"+(S.name||"")+(S.phone?" - "+S.phone:"")}
+function relText(d){return d.type==="facture"?"Bonjour "+d.client+", petit rappel : la facture n° "+d.num+" de "+fmt(total(d))+" reste à régler. Merci de me confirmer la date de paiement. "+(S.name||""):"Bonjour "+d.client+", avez-vous pu regarder le devis n° "+d.num+" de "+fmt(total(d))+" ? Je reste disponible pour toute question. "+(S.name||"")}
+function nav(){var v=[["home","Accueil"],["new","Nouveau"],["docs","Documents"]];$("#nav").innerHTML=v.map(function(x){return'<button data-act="go" data-v="'+x[0]+'" class="'+(view===x[0]||(view==="doc"&&x[0]==="docs")?"on":"")+'">'+x[1]+"</button>"}).join("")}
+function render(){nav();var h="";if(view==="home")h=home();else if(view==="new")h=newDoc();else if(view==="docs")h=docs();else h=docView();$("#app").innerHTML=h;window.scrollTo(0,0)}
+function item(d){return'<div class="card item" data-act="open" data-id="'+d.id+'"><div class="row"><b>'+esc(d.client)+'</b><span class="tag '+(unpaid(d)?"imp":d.status)+'">'+(unpaid(d)?"Impayé":d.status)+"</span></div><div class=\"row sub\" style=\"margin:4px 0 0\"><span>"+d.type+" n° "+d.num+"</span><b style=\"color:var(--ink)\">"+fmt(total(d))+"</b></div></div>"}
+function home(){var imp=S.docs.filter(unpaid),sum=imp.reduce(function(s,d){return s+total(d)},0),n=monthCount();
+return'<h1>Devis<span class="brand">Pro</span></h1><p class="sub">Devis et factures pour artisans, envoyés sur WhatsApp.</p>'+
+'<button class="btn pri" data-act="go" data-v="new">Nouveau devis</button>'+
+'<div class="card"><div class="row"><span>Documents ce mois</span><b>'+n+(isPro()?" (Pro : illimité)":" / 3 (plan gratuit)")+'</b></div><div class="row" style="margin-top:8px"><span>Impayés</span><b style="color:var(--bad)">'+fmt(sum)+"</b></div></div>"+
+'<h2>Récents</h2>'+(S.docs.length?S.docs.slice(0,4).map(item).join(""):'<div class="card sub">Aucun document pour l’instant. Crée ton premier devis en 1 minute.</div>')+
+'<h2>Mon entreprise</h2><div class="card"><label for="bn">Nom de l’artisan ou de l’entreprise</label><input id="bn" data-f="name" value="'+esc(S.name)+'" placeholder="Ex. Jamais sans Dieu Business"><label for="bp">Mon numéro WhatsApp</label><input id="bp" data-f="phone" inputmode="tel" value="'+esc(S.phone)+'" placeholder="Ex. 67 45 71 57"></div>'+
+'<div class="card"><b>Plan Pro : 3 000 FCFA/mois</b><p class="sub" style="margin:4px 0 10px">Documents illimités, logo et relances automatiques.</p><a class="btn" target="_blank" rel="noopener" href="'+wa("22967457157","Bonjour, je veux passer au plan Pro de DevisPro.")+'">Passer au plan Pro</a><label for="pc">J’ai un code Pro</label><input id="pc" placeholder="Ex. DP-K7M2" autocapitalize="characters"><button class="btn" style="margin-top:10px" data-act="code">Activer mon code</button>'+(isPro()?'<p class="sub" style="margin:0">Plan Pro actif jusqu’au '+new Date(S.pro).toLocaleDateString("fr-FR")+"</p>":"")+'</div>'}
+function newDraft(){draft={client:"",phone:"",lines:[{d:"",q:1,p:0}]}}
+function newDoc(){if(!draft)newDraft();var d=draft;
+return'<h1>Nouveau devis</h1><p class="sub">Touche un prix modèle pour l’ajouter. Tu peux modifier les montants.</p>'+
+'<label for="cl">Nom du client</label><input id="cl" data-f="client" value="'+esc(d.client)+'" placeholder="Ex. Mme Koffi"><label for="ph">WhatsApp du client</label><input id="ph" data-f="cphone" inputmode="tel" value="'+esc(d.phone)+'" placeholder="Ex. 97 00 00 00">'+
+'<h2>Travaux</h2><div class="chips">'+LIB.map(function(x,i){return'<button class="chip" data-act="lib" data-i="'+i+'">+ '+esc(x[0])+"</button>"}).join("")+"</div>"+
+d.lines.map(function(l,i){return'<div class="grid"><input aria-label="Désignation" data-f="d" data-i="'+i+'" value="'+esc(l.d)+'" placeholder="Désignation"><input aria-label="Quantité" data-f="q" data-i="'+i+'" inputmode="decimal" value="'+l.q+'"><input aria-label="Prix unitaire" data-f="p" data-i="'+i+'" inputmode="numeric" value="'+(l.p||"")+'" placeholder="Prix"></div>'}).join("")+
+'<button class="btn sm" data-act="addline">+ Ajouter une ligne</button><div class="card row" style="margin-top:14px"><span>Total</span><span class="tot" id="tot">'+fmt(total(d))+'</span></div><button class="btn pri" data-act="savedoc">Créer le devis</button>'}
+function docs(){var f=["Tous","Devis","Factures","Impayés"],L=S.docs.filter(function(d){return filt==="Tous"||(filt==="Devis"&&d.type==="devis")||(filt==="Factures"&&d.type==="facture")||(filt==="Impayés"&&unpaid(d))});
+return'<h1>Documents</h1><div class="chips">'+f.map(function(x){return'<button class="chip" style="'+(x===filt?"background:var(--or);color:var(--onor);border-color:var(--or)":"")+'" data-act="filt" data-v="'+x+'">'+x+"</button>"}).join("")+"</div>"+(L.length?L.map(item).join(""):'<div class="card sub">Rien ici pour l’instant.</div>')+
+(S.docs.length?'<h2>Clients</h2>'+Object.keys(S.docs.reduce(function(o,d){o[d.client]=1;return o},{})).map(function(c){var t=S.docs.filter(function(d){return d.client===c});return'<div class="card row"><b>'+esc(c)+'</b><span class="sub" style="margin:0">'+t.length+" document(s)</span></div>"}).join(""):"")}
+function docView(){var d=S.docs.filter(function(x){return x.id===cur})[0];if(!d)return docs();
+var rows=d.lines.map(function(l){return"<tr><td>"+esc(l.d)+'</td><td class="r">'+l.q+'</td><td class="r">'+fmt(l.p)+'</td><td class="r">'+fmt(l.q*l.p)+"</td></tr>"}).join("");
+var b='<div class="sheet"><div class="row"><h3>'+esc(S.name||"Mon entreprise")+'</h3><b style="text-transform:none">'+d.type.toUpperCase()+" n° "+d.num+'</b></div><p style="margin:6px 0">Date : '+d.date.slice(0,10).split("-").reverse().join("/")+"<br>Client : <b>"+esc(d.client)+"</b></p><table><tr><th>Travaux</th><th class=\"r\">Qté</th><th class=\"r\">Prix</th><th class=\"r\">Total</th></tr>"+rows+'</table><div class="gt">Total : '+fmt(total(d))+'</div><p style="margin:16px 0 0;font-size:13px">Signature : ______________</p></div><div class="noprint">';
+b+='<a class="btn pri" target="_blank" rel="noopener" data-act="sent" data-id="'+d.id+'" href="'+wa(d.phone,docText(d))+'">Envoyer sur WhatsApp</a>';
+if(d.type==="devis"){b+='<button class="btn" data-act="accept" data-id="'+d.id+'">Marquer comme accepté</button><button class="btn" data-act="tofact" data-id="'+d.id+'">Transformer en facture</button>'}
+else if(d.status!=="Payé")b+='<button class="btn" data-act="paid" data-id="'+d.id+'">Marquer comme payée</button>';
+if(unpaid(d)||(d.type==="devis"&&d.status==="Envoyé"))b+='<a class="btn" target="_blank" rel="noopener" href="'+wa(d.phone,relText(d))+'">Relancer le client</a>';
+b+='<button class="btn" data-act="sharepdf" data-id="'+d.id+'">Partager le PDF</button><button class="btn" data-act="print">Enregistrer en PDF (imprimer)</button><button class="btn bad" data-act="del" data-id="'+d.id+'">Supprimer</button></div>';return b}
+function sharePdf(d){try{var J=window.jspdf;if(!J||!d){toast("PDF indisponible. Utilise « Enregistrer en PDF (imprimer) ».");return}
+var p=new J.jsPDF({unit:"mm",format:"a4"}),y=20;p.setFont("helvetica","bold");p.setFontSize(16);p.text(S.name||"Mon entreprise",20,y);p.setFontSize(12);p.text(d.type.toUpperCase()+" n° "+d.num,190,y,{align:"right"});y+=8;p.setFont("helvetica","normal");p.setFontSize(10);
+if(S.phone){p.text("WhatsApp : "+S.phone,20,y);y+=6}
+p.text("Date : "+d.date.slice(0,10).split("-").reverse().join("/"),20,y);y+=6;p.text("Client : "+d.client,20,y);y+=10;
+p.setFont("helvetica","bold");p.text("Travaux",20,y);p.text("Qté",110,y,{align:"right"});p.text("Prix",150,y,{align:"right"});p.text("Total",190,y,{align:"right"});y+=3;p.line(20,y,190,y);y+=6;p.setFont("helvetica","normal");
+d.lines.forEach(function(l){var t=p.splitTextToSize(String(l.d||""),80);if(y>270){p.addPage();y=20}p.text(t,20,y);p.text(String(l.q),110,y,{align:"right"});p.text(fmt(l.p),150,y,{align:"right"});p.text(fmt(l.q*l.p),190,y,{align:"right"});y+=6*t.length+1});
+y+=2;p.line(20,y,190,y);y+=8;p.setFont("helvetica","bold");p.setFontSize(13);p.text("TOTAL : "+fmt(total(d)),190,y,{align:"right"});
+if(d.type==="facture"){y+=8;p.setFontSize(10);p.text("Statut : "+(d.status==="Payé"?"Payée":"À régler"),190,y,{align:"right"})}
+y+=16;p.setFont("helvetica","normal");p.setFontSize(10);p.text("Signature : ______________",20,y);
+var f=new File([p.output("blob")],d.type+"-"+d.num+".pdf",{type:"application/pdf"});
+if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f],title:d.type+" "+d.num}).catch(function(){})}
+else toast("Partage direct impossible ici. Utilise « Enregistrer en PDF (imprimer) », puis envoie le fichier sur WhatsApp.")}catch(e){toast("Partage impossible. Utilise « Enregistrer en PDF (imprimer) ».")}}
+function byId(id){return S.docs.filter(function(d){return d.id==id})[0]}
+document.addEventListener("click",function(e){var t=e.target.closest("[data-act]");if(!t)return;var a=t.dataset.act,d=t.dataset.id?byId(t.dataset.id):null;
+if(a==="go"){view=t.dataset.v;render()}
+else if(a==="lib"){if(!draft)newDraft();var x=LIB[+t.dataset.i],ls=draft.lines;if(ls.length===1&&!ls[0].d&&!ls[0].p)ls.pop();ls.push({d:x[0],q:1,p:x[1]});render()}
+else if(a==="addline"){draft.lines.push({d:"",q:1,p:0});render()}
+else if(a==="savedoc"){if(!draft.client.trim()){toast("Écris le nom du client.");return}var ls=draft.lines.filter(function(l){return l.d.trim()&&+l.p>0});if(!ls.length){toast("Ajoute au moins un travail avec un prix.");return}
+if(!isPro()&&monthCount()>=3){toast("Limite du plan gratuit atteinte (3 documents/mois). Passe au plan Pro.");view="home";render();return}
+var n=S.docs.filter(function(x){return x.type==="devis"}).length+1,doc={id:Date.now(),type:"devis",num:"DV-"+String(n).padStart(3,"0"),client:draft.client.trim(),phone:draft.phone,lines:ls,status:"Brouillon",date:new Date().toISOString()};S.docs.unshift(doc);save();draft=null;cur=doc.id;view="doc";render()}
+else if(a==="code"){var c=($("#pc").value||"").trim().toUpperCase();if(CODES.indexOf(c)<0){toast("Code incorrect. Vérifie et réessaie.");return}if((S.used||[]).indexOf(c)>=0){toast("Ce code a déjà été utilisé.");return}S.used=(S.used||[]).concat(c);S.pro=Date.now()+30*86400000;save();toast("Plan Pro activé pour 30 jours !");render()}
+else if(a==="open"){cur=+t.dataset.id;view="doc";render()}
+else if(a==="filt"){filt=t.dataset.v;render()}
+else if(a==="sent"){if(d&&d.status==="Brouillon"){d.status="Envoyé";save()}}
+else if(a==="accept"){d.status="Accepté";save();toast("Devis accepté.");render()}
+else if(a==="paid"){d.status="Payé";save();toast("Facture payée.");render()}
+else if(a==="tofact"){var m=S.docs.filter(function(x){return x.type==="facture"}).length+1,f={id:Date.now(),type:"facture",num:"FA-"+String(m).padStart(3,"0"),client:d.client,phone:d.phone,lines:d.lines.map(function(l){return{d:l.d,q:l.q,p:l.p}}),status:"Brouillon",date:new Date().toISOString(),conv:1};S.docs.unshift(f);save();cur=f.id;toast("Facture créée à partir du devis.");render()}
+else if(a==="sharepdf"){sharePdf(d)}
+else if(a==="print"){try{window.print()}catch(x){toast("Impression indisponible ici. Ouvre la page dans ton navigateur.")}}
+else if(a==="del"){if(confirm("Supprimer ce document ?")){S.docs=S.docs.filter(function(x){return x.id!==d.id});save();view="docs";render()}}});
+document.addEventListener("input",function(e){var f=e.target.dataset.f;if(!f)return;var v=e.target.value;
+if(f==="name"||f==="phone"){S[f]=v;save();return}
+if(f==="client")draft.client=v;else if(f==="cphone")draft.phone=v;
+else{var l=draft.lines[+e.target.dataset.i];if(f==="d")l.d=v;else l[f]=parseFloat(String(v).replace(",","."))||0;$("#tot").textContent=fmt(total(draft))}});
+render();
+</script>
+</body>
+</html>
